@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="text-center">Spam Mail Detector</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="messageInput" class="form-label">Enter your message:</label>
+                            <textarea class="form-control" id="messageInput" rows="5"></textarea>
+                        </div>
+                        <button id="predictBtn" class="btn btn-primary w-100">Check for Spam</button>
+                        
+                        <div id="result" class="mt-4" style="display: none;">
+                            <h4>Result:</h4>
+                            <div class="alert" id="resultAlert">
+                                <p><strong>Message:</strong> <span id="resultMessage"></span></p>
+                                <p><strong>Prediction:</strong> <span id="resultPrediction"></span></p>
+                                
+                                <div class="progress mt-3">
+                                    <div id="hamBar" class="progress-bar bg-success" role="progressbar"></div>
+                                    <div id="spamBar" class="progress-bar bg-danger" role="progressbar"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span id="hamConfidence"></span>
+                                    <span id="spamConfidence"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictBtn').addEventListener('click', async () => {
+            const message = document.getElementById('messageInput').value.trim();
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alert(result.error);
+                    return;
+                }
+
+                // Display results
+                document.getElementById('resultMessage').textContent = result.message;
+                document.getElementById('resultPrediction').textContent = result.prediction.toUpperCase();
+                
+                // Style the prediction
+                const resultAlert = document.getElementById('resultAlert');
+                if (result.prediction === 'spam') {
+                    resultAlert.classList.add('alert-danger');
+                    resultAlert.classList.remove('alert-success');
+                } else {
+                    resultAlert.classList.add('alert-success');
+                    resultAlert.classList.remove('alert-danger');
+                }
+
+                // Update progress bars
+                const hamPercent = Math.round(result.ham_prob * 100);
+                const spamPercent = Math.round(result.spam_prob * 100);
+                
+                document.getElementById('hamBar').style.width = `${hamPercent}%`;
+                document.getElementById('spamBar').style.width = `${spamPercent}%`;
+                
+                document.getElementById('hamConfidence').textContent = `Ham: ${hamPercent}%`;
+                document.getElementById('spamConfidence').textContent = `Spam: ${spamPercent}%`;
+
+                // Show results
+                document.getElementById('result').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while checking your message');
+            }
+        });
+    </script>
+</body>
+</html>
